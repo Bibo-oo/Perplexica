@@ -20,5 +20,4 @@ router.use('/chats', chatsRouter);
 router.use('/search', searchRouter);
 router.use('/discover', discoverRouter);
 router.use('/uploads', uploadsRouter);
-
 export default router;

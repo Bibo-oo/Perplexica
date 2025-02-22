@@ -128,7 +128,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
 
           await Promise.all(
             docGroups.map(async (doc) => {
-              const res = await llm.invoke(`
+              const res = await llm.stream(`
             You are a web search summarizer, tasked with summarizing a piece of text retrieved from a web search. Your job is to summarize the 
             text into a detailed, 2-4 paragraph explanation that captures the main ideas and provides a comprehensive answer to the query.
             If the query is \"summarize\", you should provide a detailed summary of the text. If the query is a specific question, you should answer it in the summary.
@@ -190,7 +190,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
           `);
 
               const document = new Document({
-                pageContent: res.content as string,
+                pageContent: res as unknown as string,
                 metadata: {
                   title: doc.metadata.title,
                   url: doc.metadata.url,

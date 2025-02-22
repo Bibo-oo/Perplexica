@@ -34,6 +34,129 @@ interface ChatRequestBody {
   history: Array<[string, string]>;
 }
 
+// router.post('/', async (req, res) => {
+//   try {
+//     const body: ChatRequestBody = req.body;
+
+//     if (!body.focusMode || !body.query) {
+//       return res.status(400).json({ message: 'Missing focus mode or query' });
+//     }
+
+//     body.history = body.history || [];
+//     body.optimizationMode = body.optimizationMode || 'balanced';
+
+//     const history: BaseMessage[] = body.history.map((msg) => {
+//       if (msg[0] === 'human') {
+//         return new HumanMessage({
+//           content: msg[1],
+//         });
+//       } else {
+//         return new AIMessage({
+//           content: msg[1],
+//         });
+//       }
+//     });
+
+//     const [chatModelProviders, embeddingModelProviders] = await Promise.all([
+//       getAvailableChatModelProviders(),
+//       getAvailableEmbeddingModelProviders(),
+//     ]);
+
+//     const chatModelProvider =
+//       body.chatModel?.provider || Object.keys(chatModelProviders)[0];
+//     const chatModel =
+//       body.chatModel?.model ||
+//       Object.keys(chatModelProviders[chatModelProvider])[0];
+
+//     const embeddingModelProvider =
+//       body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0];
+//     const embeddingModel =
+//       body.embeddingModel?.model ||
+//       Object.keys(embeddingModelProviders[embeddingModelProvider])[0];
+
+//     let llm: BaseChatModel | undefined;
+//     let embeddings: Embeddings | undefined;
+
+//     if (body.chatModel?.provider === 'custom_openai') {
+//       if (
+//         !body.chatModel?.customOpenAIBaseURL ||
+//         !body.chatModel?.customOpenAIKey
+//       ) {
+//         return res
+//           .status(400)
+//           .json({ message: 'Missing custom OpenAI base URL or key' });
+//       }
+
+//       llm = new ChatOpenAI({
+//         modelName: body.chatModel.model,
+//         openAIApiKey: body.chatModel.customOpenAIKey,
+//         temperature: 0.7,
+//         configuration: {
+//           baseURL: body.chatModel.customOpenAIBaseURL,
+//         },
+//       }) as unknown as BaseChatModel;
+//     } else if (
+//       chatModelProviders[chatModelProvider] &&
+//       chatModelProviders[chatModelProvider][chatModel]
+//     ) {
+//       llm = chatModelProviders[chatModelProvider][chatModel]
+//         .model as unknown as BaseChatModel | undefined;
+//     }
+
+//     if (
+//       embeddingModelProviders[embeddingModelProvider] &&
+//       embeddingModelProviders[embeddingModelProvider][embeddingModel]
+//     ) {
+//       embeddings = embeddingModelProviders[embeddingModelProvider][
+//         embeddingModel
+//       ].model as Embeddings | undefined;
+//     }
+
+//     if (!llm || !embeddings) {
+//       return res.status(400).json({ message: 'Invalid model selected' });
+//     }
+
+//     const searchHandler: MetaSearchAgentType = searchHandlers[body.focusMode];
+
+//     if (!searchHandler) {
+//       return res.status(400).json({ message: 'Invalid focus mode' });
+//     }
+
+//     const emitter = await searchHandler.searchAndAnswer(
+//       body.query,
+//       history,
+//       llm,
+//       embeddings,
+//       body.optimizationMode,
+//       [],
+//     );
+
+//     let message = '';
+//     let sources = [];
+
+//     emitter.on('data', (data) => {
+//       const parsedData = JSON.parse(data);
+//       if (parsedData.type === 'response') {
+//         message += parsedData.data;
+//       } else if (parsedData.type === 'sources') {
+//         sources = parsedData.data;
+//       }
+//     });
+
+//     emitter.on('end', () => {
+//       res.status(200).json({ message, sources });
+//     });
+
+//     emitter.on('error', (data) => {
+//       const parsedData = JSON.parse(data);
+//       res.status(500).json({ message: parsedData.data });
+//     });
+//   } catch (err: any) {
+//     logger.error(`Error in getting search results: ${err.message}`);
+//     res.status(500).json({ message: 'An error has occurred.' });
+//   }
+// });
+
 router.post('/', async (req, res) => {
   try {
     const body: ChatRequestBody = req.body;
@@ -45,17 +168,11 @@ router.post('/', async (req, res) => {
     body.history = body.history || [];
     body.optimizationMode = body.optimizationMode || 'balanced';
 
-    const history: BaseMessage[] = body.history.map((msg) => {
-      if (msg[0] === 'human') {
-        return new HumanMessage({
-          content: msg[1],
-        });
-      } else {
-        return new AIMessage({
-          content: msg[1],
-        });
-      }
-    });
+    const history: BaseMessage[] = body.history.map((msg) =>
+      msg[0] === 'human'
+        ? new HumanMessage({ content: msg[1] })
+        : new AIMessage({ content: msg[1] })
+    );
 
     const [chatModelProviders, embeddingModelProviders] = await Promise.all([
       getAvailableChatModelProviders(),
@@ -78,38 +195,28 @@ router.post('/', async (req, res) => {
     let embeddings: Embeddings | undefined;
 
     if (body.chatModel?.provider === 'custom_openai') {
-      if (
-        !body.chatModel?.customOpenAIBaseURL ||
-        !body.chatModel?.customOpenAIKey
-      ) {
-        return res
-          .status(400)
-          .json({ message: 'Missing custom OpenAI base URL or key' });
+      if (!body.chatModel?.customOpenAIBaseURL || !body.chatModel?.customOpenAIKey) {
+        return res.status(400).json({ message: 'Missing custom OpenAI base URL or key' });
       }
 
       llm = new ChatOpenAI({
         modelName: body.chatModel.model,
         openAIApiKey: body.chatModel.customOpenAIKey,
         temperature: 0.7,
-        configuration: {
-          baseURL: body.chatModel.customOpenAIBaseURL,
-        },
+        configuration: { baseURL: body.chatModel.customOpenAIBaseURL },
       }) as unknown as BaseChatModel;
     } else if (
       chatModelProviders[chatModelProvider] &&
       chatModelProviders[chatModelProvider][chatModel]
     ) {
-      llm = chatModelProviders[chatModelProvider][chatModel]
-        .model as unknown as BaseChatModel | undefined;
+      llm = chatModelProviders[chatModelProvider][chatModel].model as BaseChatModel | undefined;
     }
 
     if (
       embeddingModelProviders[embeddingModelProvider] &&
       embeddingModelProviders[embeddingModelProvider][embeddingModel]
     ) {
-      embeddings = embeddingModelProviders[embeddingModelProvider][
-        embeddingModel
-      ].model as Embeddings | undefined;
+      embeddings = embeddingModelProviders[embeddingModelProvider][embeddingModel].model as Embeddings | undefined;
     }
 
     if (!llm || !embeddings) {
@@ -131,25 +238,30 @@ router.post('/', async (req, res) => {
       [],
     );
 
-    let message = '';
-    let sources = [];
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders(); // Ensure headers are sent immediately
 
     emitter.on('data', (data) => {
       const parsedData = JSON.parse(data);
       if (parsedData.type === 'response') {
-        message += parsedData.data;
+        res.write(`${parsedData.data}`);
       } else if (parsedData.type === 'sources') {
-        sources = parsedData.data;
+        res.write(`SOURCES: ${JSON.stringify(parsedData.data)}\n\n`);
       }
     });
 
     emitter.on('end', () => {
-      res.status(200).json({ message, sources });
+      //res.write('data: [DONE]\n\n');
+      res.write('[DONE]');
+      res.end();
     });
 
     emitter.on('error', (data) => {
       const parsedData = JSON.parse(data);
-      res.status(500).json({ message: parsedData.data });
+      res.write(`data: ERROR: ${parsedData.data}\n\n`);
+      res.end();
     });
   } catch (err: any) {
     logger.error(`Error in getting search results: ${err.message}`);
