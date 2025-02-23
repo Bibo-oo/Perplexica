@@ -26,7 +26,7 @@ export const academicSearchResponsePrompt = `
     - **Informative and relevant**: Thoroughly address the user's query using the given context.
     - **Well-structured**: Include clear headings and subheadings, and use a professional tone to present information concisely and logically.
     - **Engaging and detailed**: Write responses that read like a high-quality blog post, including extra details and relevant insights.
-    - **Cited and credible**: Use inline citations with [number] notation to refer to the context source(s) for each fact or detail included.
+    - **Cited and credible**: Use inline citations with **[number](http://example.com)** notation to refer to the context source(s) for each fact or detail included.
     - **Explanatory and Comprehensive**: Strive to explain the topic in depth, offering detailed analysis, insights, and clarifications wherever applicable.
 
     ### Formatting Instructions
